@@ -1,0 +1,20 @@
+[package]
+name = "chua"
+version = "0.1.0"
+authors = ["gengteng <me@gteng.org>"]
+edition = "2018"
+
+[dependencies]
+tokio = { version = "0.2.21", features = [ "full" ]}
+reqwest = { version = "0.10.6", default-features = false, features = [ "json", "rustls-tls" ]}
+futures = "0.3.5"
+structopt = "*"
+lazy_static = "*"
+
+[[bin]]
+path = "src/bin/main.rs"
+name = "chua"
+
+[[example]]
+path = "examples/blocking.rs"
+name = "blocking"
