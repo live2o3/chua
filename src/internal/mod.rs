@@ -21,17 +21,18 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
 
     let base_url = base_url.into_url()?;
 
-    let reader = FileReader::new(path, chunk_size).await?;
-
-    let (sender, receiver) = mpsc::unbounded();
-
-    tokio::spawn(reader.run(receiver));
+    let (reader, _size) = FileReader::new(path, chunk_size).await?;
 
     let client = reqwest::ClientBuilder::new()
         .timeout(Duration::from_secs(20))
         .build()?;
 
+    // TODO: 这里的文件ID应该是从服务器端请求的
     let file_id = Uuid::new_v4();
+
+    let (sender, receiver) = mpsc::unbounded();
+
+    tokio::spawn(reader.run(receiver));
 
     let mut vec = Vec::with_capacity(parallel);
 

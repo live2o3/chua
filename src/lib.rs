@@ -16,6 +16,7 @@ macro_rules! if_tokio {
 
 pub use common::json::*;
 pub use common::Exception;
+pub use common::{FILE_ROUTE, PART_NAME};
 
 if_tokio! {
     mod internal;
@@ -24,5 +25,5 @@ if_tokio! {
 
 if_wasm! {
     mod wasm;
-    pub use wasm::*;
+    pub use wasm::upload;
 }

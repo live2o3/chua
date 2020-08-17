@@ -14,14 +14,15 @@ pub async fn upload(
     chunk_size: u64,
     parallel: usize,
 ) -> Result<(), Exception> {
-    let reader = FileReader::new(Blob::from(file), chunk_size);
+    let (reader, _size) = FileReader::new(Blob::from(file), chunk_size);
+
+    let client = reqwest::Client::new();
 
     let (sender, receiver) = mpsc::unbounded();
 
     runtime::spawn(async move { reader.run(receiver).await });
 
-    let client = reqwest::Client::new();
-
+    // TODO: 这里的文件ID应该是从服务器端请求的
     let file_id = Uuid::new_v4();
 
     let mut vec = Vec::with_capacity(parallel);

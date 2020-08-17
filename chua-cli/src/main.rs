@@ -9,7 +9,7 @@ use url::Url;
 struct Opts {
     /// url to post
     #[structopt(short, long)]
-    url: Url,
+    base_url: Url,
 
     /// parallelism
     #[structopt(short, long)]
@@ -27,11 +27,11 @@ struct Opts {
 #[tokio::main]
 async fn main() -> Result<(), Exception> {
     let Opts {
-        url,
+        base_url,
         file,
         chunk_size,
         parallel,
     } = Opts::from_args();
 
-    upload(url, file, chunk_size, parallel).await
+    upload(base_url, file, chunk_size, parallel).await
 }

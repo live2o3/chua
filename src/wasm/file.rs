@@ -12,12 +12,12 @@ pub(super) struct FileReader {
 }
 
 impl FileReader {
-    pub fn new(file: Blob, chunk_size: u64) -> Self {
+    pub fn new(file: Blob, chunk_size: u64) -> (Self, u64) {
         let size = file.size();
 
         let size_iter = ChunkIterator::new(size, chunk_size);
 
-        Self { size_iter, file }
+        (Self { size_iter, file }, size)
     }
 
     async fn read_chunk(&mut self) -> Option<Result<Chunk, Exception>> {

@@ -1,4 +1,4 @@
-use crate::common::{Chunk, Exception, FILE_ROUTE};
+use crate::common::{Chunk, Exception, FILE_ROUTE, PART_NAME};
 use futures::SinkExt;
 use futures_channel::{mpsc, oneshot};
 use reqwest::Url;
@@ -27,7 +27,7 @@ impl ChunkUploader {
 
         let file_id = self.file_id.to_string();
         let file = Part::bytes(data).file_name(file_id.clone());
-        let form = Form::new().part("file", file);
+        let form = Form::new().part(PART_NAME, file);
 
         let url = self
             .base_url

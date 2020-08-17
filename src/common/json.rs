@@ -47,11 +47,21 @@ pub enum InitializeError {
     Other(String),
 }
 
-/// 完成请求的参数
+/// 分片上传响应的结果
 #[derive(Serialize, Deserialize, Debug)]
-pub struct CompleteParam {
-    /// 文件ID
-    pub id: Uuid,
+pub enum UploadChunkResult {
+    Ok,
+    Err { error: UploadChunkError },
+}
+
+/// 分片上传响应的错误
+#[derive(Serialize, Deserialize, Debug)]
+pub enum UploadChunkError {
+    /// 这个分片的尺寸不对
+    Size,
+
+    /// 其它错误
+    Other(String),
 }
 
 /// 完成响应的结果
@@ -64,6 +74,12 @@ pub enum CompleteResult {
 /// 完成响应的错误
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CompleteError {
+    /// 还在上传中
     Uploading,
+
+    /// MD5 校验不合法
     MD5(String),
+
+    /// 其它错误
+    Other(String),
 }

@@ -37,5 +37,6 @@ features = ["serde", "v4", "wasm-bindgen"]
 
 [workspace]
 members = [
-    "chua-cli"
+    "chua-cli",
+    "chua-server"
 ]

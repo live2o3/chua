@@ -13,7 +13,7 @@ pub(super) struct FileReader {
 }
 
 impl FileReader {
-    pub async fn new<P: AsRef<Path>>(path: P, chunk_size: u64) -> Result<Self, Exception> {
+    pub async fn new<P: AsRef<Path>>(path: P, chunk_size: u64) -> Result<(Self, u64), Exception> {
         let file = File::open(&path).await?;
 
         let meta = file.metadata().await?;
@@ -22,7 +22,7 @@ impl FileReader {
 
         let size_iter = ChunkIterator::new(size, chunk_size);
 
-        Ok(Self { size_iter, file })
+        Ok((Self { size_iter, file }, size))
     }
 
     async fn read_chunk(&mut self) -> Option<Result<Chunk, Exception>> {
