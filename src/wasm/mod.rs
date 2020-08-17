@@ -1,5 +1,6 @@
 mod file;
 mod upload;
+mod util;
 
 use file::FileReader;
 use gloo_file::Blob;

@@ -4,7 +4,7 @@ use futures_channel::mpsc;
 use reqwest::IntoUrl;
 use std::error::Error;
 use std::path::Path;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use uuid::Uuid;
 
 mod file;
@@ -36,8 +36,6 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
         .build()?;
 
     let file_id = Uuid::new_v4();
-
-    let start = Instant::now();
 
     let mut vec = Vec::with_capacity(parallel);
 

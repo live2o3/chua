@@ -38,7 +38,7 @@ impl FileReader {
                         .to_vec();
                         Some(Chunk { index, data })
                     }
-                    Err(e) => None,
+                    Err(_e) => None,
                 }
             }
         }
