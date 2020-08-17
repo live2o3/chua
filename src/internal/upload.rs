@@ -1,4 +1,4 @@
-use crate::internal::file::Chunk;
+use crate::common::Chunk;
 use crate::internal::Exception;
 use futures::SinkExt;
 use futures_channel::{mpsc, oneshot};

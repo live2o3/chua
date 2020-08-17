@@ -1,3 +1,5 @@
+pub(crate) mod common;
+
 macro_rules! if_wasm {
     ($($item:item)*) => {$(
         #[cfg(target_arch = "wasm32")]

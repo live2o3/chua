@@ -27,8 +27,6 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
 
     let reader = FileReader::new(path, chunk_size).await?;
 
-    let file_len = reader.file_len();
-
     let (sender, receiver) = mpsc::unbounded();
 
     tokio::spawn(reader.run(receiver));
@@ -49,13 +47,6 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
     }
 
     let _ = futures::future::join_all(vec).await;
-
-    println!(
-        "file: {}, size: {} bytes, time: {}ms",
-        path.display(),
-        file_len,
-        start.elapsed().as_millis()
-    );
 
     Ok(())
 }

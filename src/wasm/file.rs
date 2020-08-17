@@ -1,3 +1,4 @@
+use crate::common::{Chunk, ChunkIterator};
 use futures::future::join;
 use futures::StreamExt;
 use futures_channel::{mpsc, oneshot};
@@ -6,73 +7,27 @@ use gloo_file::Blob;
 use wasm_bindgen::UnwrapThrowExt;
 
 #[derive(Debug)]
-pub struct Chunk {
-    pub index: usize,
-    pub data: Vec<u8>,
-}
-
-#[derive(Debug)]
 pub(super) struct FileReader {
-    chunk_count: usize,
-    chunk_size: u64,
-    remainder: u64,
+    size_iter: ChunkIterator,
     file: Blob,
-
-    // current chunk
-    cur_chunk: usize,
 }
 
 impl FileReader {
     pub fn new(file: Blob, chunk_size: u64) -> Self {
-        let len = file.size();
+        let size = file.size();
 
-        let remainder = len % chunk_size;
-        let chunk_count = (len / chunk_size) as usize + if remainder > 0 { 1 } else { 0 };
+        let size_iter = ChunkIterator::new(size, chunk_size);
 
-        Self {
-            chunk_count,
-            chunk_size,
-            remainder,
-            file,
-            cur_chunk: 0,
-        }
-    }
-
-    pub fn file_len(&self) -> u64 {
-        if self.chunk_count == 0 {
-            0
-        } else {
-            (self.chunk_count - 1) as u64 * self.chunk_size + self.remainder
-        }
-    }
-
-    fn next_pos(&mut self) -> Option<(usize, u64)> {
-        let cur = self.cur_chunk;
-        if cur < self.chunk_count {
-            let result = if self.remainder > 0 && cur == self.chunk_count - 1 {
-                (cur, self.remainder)
-            } else {
-                (cur, self.chunk_size)
-            };
-
-            // increase before return
-            self.cur_chunk += 1;
-
-            Some(result)
-        } else {
-            None
-        }
+        Self { size_iter, file }
     }
 
     async fn read_chunk(&mut self) -> Option<Chunk> {
-        let next_pos = self.next_pos();
+        let next_pos = self.size_iter.next();
 
         match next_pos {
             None => None,
-            Some((index, size)) => {
-                let start = index as u64 * self.chunk_size;
-                let end = start + size;
-                let slice = self.file.slice(start, end);
+            Some((index, range)) => {
+                let slice = self.file.slice(range.start, range.end);
                 match read_as_array_buffer(&slice).await {
                     Ok(buffer) => {
                         let data: Vec<u8> = js_sys::Uint8Array::new_with_byte_offset_and_length(
