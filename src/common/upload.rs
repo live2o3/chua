@@ -1,5 +1,4 @@
-use crate::common::Chunk;
-use crate::internal::Exception;
+use crate::common::{Chunk, Exception, FILE_ROUTE};
 use futures::SinkExt;
 use futures_channel::{mpsc, oneshot};
 use reqwest::Url;
@@ -8,15 +7,15 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub(crate) struct ChunkUploader {
     client: reqwest::Client,
-    url: Url,
+    base_url: Url,
     file_id: Uuid,
 }
 
 impl ChunkUploader {
-    pub fn new(client: reqwest::Client, url: Url, file_id: Uuid) -> Self {
+    pub fn new(client: reqwest::Client, base_url: Url, file_id: Uuid) -> Self {
         Self {
             client,
-            url,
+            base_url,
             file_id,
         }
     }
@@ -28,14 +27,16 @@ impl ChunkUploader {
 
         let file_id = self.file_id.to_string();
         let file = Part::bytes(data).file_name(file_id.clone());
-        let form = Form::new()
-            .part("file", file)
-            .text("file_id", file_id)
-            .text("index", index.to_string());
+        let form = Form::new().part("file", file);
 
-        let req = self.client.post(self.url.clone()).multipart(form).build()?;
+        let url = self
+            .base_url
+            .clone()
+            .join(&format!("{}/{}/{}", FILE_ROUTE, file_id, index))?;
 
-        Ok(self.client.execute(req).await?.text().await?)
+        let req = self.client.post(url).multipart(form).send().await?;
+
+        Ok(req.text().await?)
     }
 
     pub async fn run(

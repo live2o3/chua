@@ -1,19 +1,15 @@
+use crate::common::{ChunkUploader, Exception};
 use crate::internal::file::FileReader;
-use crate::internal::upload::ChunkUploader;
 use futures_channel::mpsc;
 use reqwest::IntoUrl;
-use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 use uuid::Uuid;
 
 mod file;
-mod upload;
-
-pub type Exception = Box<dyn Error + Sync + Send + 'static>;
 
 pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
-    url: U,
+    base_url: U,
     path: P,
     chunk_size: u64,
     parallel: usize,
@@ -23,7 +19,7 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
         return Err("The path is not pointing a regular file".into());
     }
 
-    let url = url.into_url()?;
+    let base_url = base_url.into_url()?;
 
     let reader = FileReader::new(path, chunk_size).await?;
 
@@ -40,7 +36,7 @@ pub async fn upload<P: AsRef<Path>, U: IntoUrl>(
     let mut vec = Vec::with_capacity(parallel);
 
     for _ in 0..parallel {
-        let uploader = ChunkUploader::new(client.clone(), url.clone(), file_id.clone());
+        let uploader = ChunkUploader::new(client.clone(), base_url.clone(), file_id.clone());
         vec.push(tokio::spawn(uploader.run(sender.clone())));
     }
 

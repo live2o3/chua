@@ -8,8 +8,8 @@ use wasm_bindgen_futures::spawn_local;
 
 pub fn spawn<T>(task: T) -> JoinHandle<T::Output>
 where
-    T: Future + Send + 'static,
-    T::Output: Send + 'static,
+    T: Future + 'static,
+    T::Output: 'static,
 {
     let (sender, receiver) = oneshot::channel();
 
@@ -28,7 +28,7 @@ pub struct JoinHandle<T> {
     receiver: Receiver<T>,
 }
 
-impl<T: Send + 'static> Future for JoinHandle<T> {
+impl<T: 'static> Future for JoinHandle<T> {
     type Output = Result<T, Canceled>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

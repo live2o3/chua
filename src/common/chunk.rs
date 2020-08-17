@@ -1,13 +1,13 @@
 use std::ops::Range;
 
 #[derive(Debug)]
-pub struct Chunk {
+pub(crate) struct Chunk {
     pub index: usize,
     pub data: Vec<u8>,
 }
 
 #[derive(Debug)]
-pub struct ChunkIterator {
+pub(crate) struct ChunkIterator {
     chunk_count: usize,
     chunk_size: u64,
     remainder: u64,

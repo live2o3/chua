@@ -1,4 +1,4 @@
-pub(crate) mod common;
+mod common;
 
 macro_rules! if_wasm {
     ($($item:item)*) => {$(
@@ -14,10 +14,12 @@ macro_rules! if_tokio {
     )*}
 }
 
+pub use common::json::*;
+pub use common::Exception;
+
 if_tokio! {
     mod internal;
     pub use internal::upload;
-    pub use internal::Exception;
 }
 
 if_wasm! {

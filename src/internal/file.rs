@@ -1,5 +1,4 @@
-use crate::common::{Chunk, ChunkIterator};
-use crate::internal::Exception;
+use crate::common::{Chunk, ChunkIterator, Exception};
 use futures::future::join;
 use futures::StreamExt;
 use futures_channel::{mpsc, oneshot};
