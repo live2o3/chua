@@ -33,5 +33,9 @@ async fn main() -> Result<(), Exception> {
         parallel,
     } = Opts::from_args();
 
-    upload(base_url, file, chunk_size, parallel).await
+    let file_id = upload(base_url, &file, chunk_size, parallel).await?;
+
+    println!("File {} uploaded.(id: {})", file.display(), file_id);
+
+    Ok(())
 }

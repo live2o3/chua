@@ -18,7 +18,7 @@ const MAX_CHUNK_SIZE: u64 = 1024 * 1024 * 10;
 
 #[tokio::main]
 async fn main() -> Result<(), Exception> {
-    let upload_chunk = warp::post()
+    let upload_chunk = warp::put()
         .and(warp::path("file"))
         .and(warp::path::param())
         .and(warp::path::param())
@@ -44,7 +44,8 @@ async fn main() -> Result<(), Exception> {
     Ok(())
 }
 
-async fn upload_initialize(_param: InitializeParam) -> Result<InitializeReply, Infallible> {
+async fn upload_initialize(param: InitializeParam) -> Result<InitializeReply, Infallible> {
+    println!("upload_initialize: {:?}", param);
     Ok(InitializeResult::Ok {
         id: Uuid::new_v4(),
         duplicated: false,
@@ -52,15 +53,18 @@ async fn upload_initialize(_param: InitializeParam) -> Result<InitializeReply, I
     .into())
 }
 
-async fn upload_complete(_id: Uuid) -> Result<CompleteReply, Infallible> {
+async fn upload_complete(file_id: Uuid) -> Result<CompleteReply, Infallible> {
+    println!("upload_complete: {}", file_id);
     Ok(CompleteResult::Ok.into())
 }
 
 async fn upload_chunk(
-    _id: Uuid,
-    _index: usize,
+    file_id: Uuid,
+    index: usize,
     mut form: FormData,
 ) -> Result<UploadChunkReply, Infallible> {
+    println!("upload_chunk: {}.{}", file_id, index);
+
     while let Some(result) = form.next().await {
         match result {
             Ok(part) if part.name() == PART_NAME => return Ok(UploadChunkResult::Ok.into()),
@@ -74,8 +78,5 @@ async fn upload_chunk(
         }
     }
 
-    Ok(UploadChunkResult::Err {
-        error: UploadChunkError::Size,
-    }
-    .into())
+    Ok(UploadChunkResult::Ok.into())
 }

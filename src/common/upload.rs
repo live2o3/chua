@@ -1,7 +1,8 @@
 use crate::common::{Chunk, Exception, FILE_ROUTE, PART_NAME};
+use crate::{CompleteResult, InitializeParam, InitializeResult};
 use futures::SinkExt;
 use futures_channel::{mpsc, oneshot};
-use reqwest::Url;
+use reqwest::{IntoUrl, Url};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -34,7 +35,7 @@ impl ChunkUploader {
             .clone()
             .join(&format!("{}/{}/{}", FILE_ROUTE, file_id, index))?;
 
-        let req = self.client.post(url).multipart(form).send().await?;
+        let req = self.client.put(url).multipart(form).send().await?;
 
         Ok(req.text().await?)
     }
@@ -66,4 +67,36 @@ impl ChunkUploader {
 
         Ok(())
     }
+}
+
+pub(crate) async fn initialize(
+    base_url: impl IntoUrl,
+    client: &reqwest::Client,
+    param: InitializeParam,
+) -> Result<InitializeResult, Exception> {
+    let url = base_url.into_url()?.join(&format!("{}", FILE_ROUTE))?;
+
+    let result: InitializeResult = client
+        .post(url)
+        .body(serde_json::to_string(&param)?)
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    Ok(result)
+}
+
+pub(crate) async fn complete(
+    base_url: impl IntoUrl,
+    client: &reqwest::Client,
+    file_id: &Uuid,
+) -> Result<CompleteResult, Exception> {
+    let url = base_url
+        .into_url()?
+        .join(&format!("{}/{}", FILE_ROUTE, file_id))?;
+
+    let result: CompleteResult = client.post(url).send().await?.json().await?;
+
+    Ok(result)
 }
