@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::ops::{Range, RangeInclusive};
 use uuid::Uuid;
 
 /// 初始化请求的参数
@@ -38,10 +39,10 @@ pub enum InitializeResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum InitializeError {
     /// 文件尺寸错误
-    Size,
+    Size(RangeInclusive<u64>),
 
     /// 分片大小不合适，并给出建议的分片大小
-    ChunkSize(u64),
+    ChunkSize(RangeInclusive<u64>),
 
     /// 其它错误
     Other(String),
@@ -75,7 +76,7 @@ pub enum CompleteResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CompleteError {
     /// 还在上传中
-    Uploading,
+    Uploading(Vec<Range<usize>>),
 
     /// MD5 校验不合法
     MD5(String),

@@ -1,7 +1,8 @@
 mod file;
 mod runtime;
 
-use crate::common::{ChunkUploader, Exception};
+use crate::common::{Exception, Uploader};
+use crate::{CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
 use gloo_file::Blob;
@@ -13,26 +14,57 @@ pub async fn upload(
     file: web_sys::File,
     chunk_size: u64,
     parallel: usize,
-) -> Result<(), Exception> {
-    let (reader, _size) = FileReader::new(Blob::from(file), chunk_size);
+) -> Result<Uuid, Exception> {
+    let name: String = file.name();
 
-    let client = reqwest::Client::new();
+    let extension = match name.rfind('.') {
+        None => "".to_string(),
+        Some(index) => name[index + 1..].to_string(),
+    };
+
+    let (reader, size) = FileReader::new(Blob::from(file), chunk_size);
+
+    let uploader = Uploader::new(base_url).await?;
+
+    let init_param = InitializeParam {
+        size,
+        chunk_size,
+        extension,
+        md5: "".to_string(),
+    };
+
+    let file_id = match uploader.initialize(init_param).await {
+        Ok(result) => match result {
+            InitializeResult::Ok { id, duplicated } => {
+                if duplicated {
+                    return Ok(id);
+                }
+
+                id
+            }
+            InitializeResult::Err { error } => return Err(format!("{:?}", error).into()),
+        },
+        Err(e) => return Err(e),
+    };
 
     let (sender, receiver) = mpsc::unbounded();
 
     runtime::spawn(async move { reader.run(receiver).await });
 
-    // TODO: 这里的文件ID应该是从服务器端请求的
-    let file_id = Uuid::new_v4();
-
     let mut vec = Vec::with_capacity(parallel);
 
     for _ in 0..parallel {
-        let uploader = ChunkUploader::new(client.clone(), base_url.clone(), file_id.clone());
-        vec.push(runtime::spawn(uploader.run(sender.clone())));
+        let uploader = uploader.clone();
+        vec.push(runtime::spawn(
+            uploader.upload_chunk(file_id, sender.clone()),
+        ));
     }
 
     let _ = futures::future::join_all(vec).await;
 
-    Ok(())
+    if let CompleteResult::Err { error } = uploader.complete(&file_id).await? {
+        return Err(format!("{:?}", error).into());
+    }
+
+    Ok(file_id)
 }
