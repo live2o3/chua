@@ -6,11 +6,11 @@ use crate::{CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
 use gloo_file::Blob;
-use reqwest::Url;
+use reqwest::IntoUrl;
 use uuid::Uuid;
 
 pub async fn upload(
-    base_url: Url,
+    base_url: impl IntoUrl,
     file: web_sys::File,
     chunk_size: u64,
     parallel: usize,
