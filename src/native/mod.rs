@@ -1,5 +1,5 @@
 use crate::common::{complete, initialize, ChunkUploader, Exception};
-use crate::internal::file::FileReader;
+use crate::native::file::FileReader;
 use crate::{CompleteResult, InitializeParam, InitializeResult};
 use futures_channel::mpsc;
 use reqwest::IntoUrl;

@@ -19,8 +19,8 @@ pub use common::Exception;
 pub use common::{FILE_ROUTE, PART_NAME};
 
 if_tokio! {
-    mod internal;
-    pub use internal::upload;
+    mod native;
+    pub use native::upload;
 }
 
 if_wasm! {
