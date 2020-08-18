@@ -18,6 +18,8 @@ const MAX_CHUNK_SIZE: u64 = 1024 * 1024 * 10;
 
 #[tokio::main]
 async fn main() -> Result<(), Exception> {
+    // 上传分片
+    // PUT /file/{fileId}/{index}
     let upload_chunk = warp::put()
         .and(warp::path("file"))
         .and(warp::path::param())
@@ -25,11 +27,15 @@ async fn main() -> Result<(), Exception> {
         .and(warp::multipart::form().max_length(MAX_CHUNK_SIZE)) // 最大20M
         .and_then(upload_chunk);
 
+    // 初始化上传
+    // POST /file
     let initialize = warp::post()
         .and(warp::path("file"))
         .and(warp::body::json())
         .and_then(upload_initialize);
 
+    // 完成上传
+    // POST /file/{fileId}
     let complete = warp::post()
         .and(warp::path("file"))
         .and(warp::path::param())

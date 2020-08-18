@@ -7,7 +7,7 @@ macro_rules! if_wasm {
     )*}
 }
 
-macro_rules! if_tokio {
+macro_rules! if_native {
     ($($item:item)*) => {$(
         #[cfg(not(target_arch = "wasm32"))]
         $item
@@ -18,7 +18,7 @@ pub use common::json::*;
 pub use common::Exception;
 pub use common::{FILE_ROUTE, PART_NAME};
 
-if_tokio! {
+if_native! {
     mod native;
     pub use native::upload;
 }
