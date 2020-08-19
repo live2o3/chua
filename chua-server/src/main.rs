@@ -32,7 +32,7 @@ struct Opts {
     max_file_size: u64,
 
     /// Path to static directory
-    #[structopt(short = "p", long, parse(from_os_str))]
+    #[structopt(short = "s", long, parse(from_os_str))]
     static_path: PathBuf,
 }
 
