@@ -20,19 +20,19 @@ type Exception = Box<dyn Error + Sync + Send + 'static>;
 #[structopt(name = "chua-server")]
 struct Opts {
     /// Http port to listen on
-    #[structopt(short, long)]
+    #[structopt(short = "p", long)]
     port: u16,
 
     /// Max chunk size
-    #[structopt(short, long)]
+    #[structopt(short = "c", long)]
     max_chunk_size: u64,
 
     /// Max file size
-    #[structopt(short, long)]
+    #[structopt(short = "f", long)]
     max_file_size: u64,
 
     /// Path to static directory
-    #[structopt(short, long, parse(from_os_str))]
+    #[structopt(short = "p", long, parse(from_os_str))]
     static_path: PathBuf,
 }
 
