@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::ops::{Range, RangeInclusive};
+use std::ops::Range;
 use uuid::Uuid;
 
 /// 初始化请求的参数
@@ -39,10 +39,10 @@ pub enum InitializeResult {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum InitializeError {
     /// 文件尺寸错误
-    Size(RangeInclusive<u64>),
+    Size(u64),
 
     /// 分片大小不合适，并给出建议的分片大小
-    ChunkSize(RangeInclusive<u64>),
+    ChunkSize(u64),
 
     /// 其它错误
     Other(String),

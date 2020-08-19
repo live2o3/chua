@@ -5,7 +5,7 @@ use url::Url;
 
 /// 欻(chua), 文件分片上传工具
 #[derive(Debug, Clone, StructOpt)]
-#[structopt(name = "chua")]
+#[structopt(name = "chua-cli")]
 struct Opts {
     /// url to post
     #[structopt(short, long)]
