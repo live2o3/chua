@@ -3,7 +3,6 @@ use futures_channel::oneshot;
 use futures_channel::oneshot::{Canceled, Receiver};
 use std::future::Future;
 use std::pin::Pin;
-use wasm_bindgen::UnwrapThrowExt;
 use wasm_bindgen_futures::spawn_local;
 
 pub fn spawn<T>(task: T) -> JoinHandle<T::Output>
@@ -15,10 +14,7 @@ where
 
     spawn_local(async move {
         let value = task.await;
-        sender
-            .send(value)
-            .map_err(|_| format!("join error"))
-            .unwrap_throw();
+        sender.send(value).unwrap_or_default();
     });
 
     JoinHandle { receiver }

@@ -1,6 +1,7 @@
 mod reply;
 
 use crate::reply::{CompleteReply, InitializeReply, UploadChunkReply};
+use bytes::Buf;
 use chua::{
     CompleteResult, InitializeError, InitializeParam, InitializeResult, UploadChunkError,
     UploadChunkResult, PART_NAME,
@@ -58,8 +59,16 @@ async fn main() -> Result<(), Exception> {
 
                 while let Some(result) = form.next().await {
                     match result {
-                        Ok(part) if part.name() == PART_NAME => {
-                            return Ok(UploadChunkResult::Ok.into())
+                        Ok(mut part) if part.name() == PART_NAME => {
+                            return if let Some(Ok(data)) = part.data().await {
+                                println!("chunk size: {}", data.remaining());
+                                Ok(UploadChunkResult::Ok.into())
+                            } else {
+                                Ok(UploadChunkResult::Err {
+                                    error: UploadChunkError::Size,
+                                }
+                                .into())
+                            }
                         }
                         Err(e) => {
                             return Ok(UploadChunkResult::Err {
