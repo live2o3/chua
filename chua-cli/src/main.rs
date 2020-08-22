@@ -1,14 +1,15 @@
 use chua::{upload, Exception};
 use std::path::PathBuf;
 use structopt::StructOpt;
+use url::Url;
 
 /// 欻(chua), 文件分片上传工具
 #[derive(Debug, Clone, StructOpt)]
-#[structopt(name = "chua")]
+#[structopt(name = "chua-cli")]
 struct Opts {
     /// url to post
     #[structopt(short, long)]
-    url: String,
+    base_url: Url,
 
     /// parallelism
     #[structopt(short, long)]
@@ -16,7 +17,7 @@ struct Opts {
 
     /// chunk Size
     #[structopt(short, long)]
-    chunk_size: usize,
+    chunk_size: u64,
 
     /// file to upload
     #[structopt(short, long, parse(from_os_str))]
@@ -26,11 +27,15 @@ struct Opts {
 #[tokio::main]
 async fn main() -> Result<(), Exception> {
     let Opts {
-        url,
+        base_url,
         file,
         chunk_size,
         parallel,
     } = Opts::from_args();
 
-    upload(&url, file, chunk_size, parallel).await
+    let file_id = upload(base_url, &file, chunk_size, parallel).await?;
+
+    println!("File {} uploaded.(id: {})", file.display(), file_id);
+
+    Ok(())
 }
