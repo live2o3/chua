@@ -1,8 +1,8 @@
 mod file;
 
 use crate::common::{Exception, Uploader};
-use crate::native::file::FileReader;
 use crate::{CompleteResult, InitializeParam, InitializeResult};
+use file::FileReader;
 use futures_channel::mpsc;
 use reqwest::IntoUrl;
 use std::path::Path;

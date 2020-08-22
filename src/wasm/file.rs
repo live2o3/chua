@@ -1,51 +1,39 @@
+use super::runtime::get_slice;
 use crate::common::{Chunk, ChunkIterator, Exception};
 use futures::future::join;
 use futures::StreamExt;
 use futures_channel::{mpsc, oneshot};
-use gloo_file::futures::read_as_array_buffer;
-use gloo_file::Blob;
 
 #[derive(Debug)]
 pub(super) struct FileReader {
     size_iter: ChunkIterator,
-    file: Blob,
+    file: web_sys::Blob,
 }
 
 impl FileReader {
-    pub fn new(file: Blob, chunk_size: u64) -> (Self, u64) {
-        let size = file.size();
+    pub fn new(file: web_sys::Blob, chunk_size: u64) -> (Self, u64) {
+        let size = file.size() as u64;
 
         let size_iter = ChunkIterator::new(size, chunk_size);
 
         (Self { size_iter, file }, size)
     }
 
-    async fn read_chunk(&mut self) -> Option<Result<Chunk, Exception>> {
+    async fn read_chunk(&mut self) -> Option<Result<Chunk<web_sys::Blob>, Exception>> {
         let next_pos = self.size_iter.next();
 
         match next_pos {
             None => None,
             Some((index, range)) => {
-                let slice = self.file.slice(range.start, range.end);
-                match read_as_array_buffer(&slice).await {
-                    Ok(buffer) => {
-                        let data: Vec<u8> = js_sys::Uint8Array::new_with_byte_offset_and_length(
-                            &buffer,
-                            0,
-                            buffer.byte_length(),
-                        )
-                        .to_vec();
-                        Some(Ok(Chunk { index, data }))
-                    }
-                    Err(e) => Some(Err(e.into())),
-                }
+                let data = get_slice(&self.file, range.start, range.end);
+                Some(Ok(Chunk { index, data }))
             }
         }
     }
 
     pub(crate) async fn run(
         mut self,
-        mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk>>>,
+        mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk<web_sys::Blob>>>>,
     ) -> Result<(), Exception> {
         while let (Some(sender), read_chunk) = join(receiver.next(), self.read_chunk()).await {
             match read_chunk {

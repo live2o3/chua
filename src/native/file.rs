@@ -25,7 +25,7 @@ impl FileReader {
         Ok((Self { size_iter, file }, size))
     }
 
-    async fn read_chunk(&mut self) -> Option<Result<Chunk, Exception>> {
+    async fn read_chunk(&mut self) -> Option<Result<Chunk<Vec<u8>>, Exception>> {
         let next_pos = self.size_iter.next();
 
         match next_pos {
@@ -43,7 +43,7 @@ impl FileReader {
 
     pub(crate) async fn run(
         mut self,
-        mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk>>>,
+        mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk<Vec<u8>>>>>,
     ) -> Result<(), Exception> {
         while let (Some(sender), read_chunk) = join(receiver.next(), self.read_chunk()).await {
             match read_chunk {

@@ -1,11 +1,10 @@
 mod file;
-mod runtime;
+pub(crate) mod runtime;
 
 use crate::common::{Exception, Uploader};
 use crate::{CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
-use gloo_file::Blob;
 use reqwest::IntoUrl;
 use uuid::Uuid;
 
@@ -22,7 +21,7 @@ pub async fn upload(
         Some(index) => name[index + 1..].to_string(),
     };
 
-    let (reader, size) = FileReader::new(Blob::from(file), chunk_size);
+    let (reader, size) = FileReader::new(file.into(), chunk_size);
 
     let uploader = Uploader::new(base_url).await?;
 

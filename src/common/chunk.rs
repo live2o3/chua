@@ -1,9 +1,9 @@
 use std::ops::Range;
 
 #[derive(Debug)]
-pub(crate) struct Chunk {
+pub(crate) struct Chunk<T> {
     pub index: usize,
-    pub data: Vec<u8>,
+    pub data: T,
 }
 
 #[derive(Debug)]
