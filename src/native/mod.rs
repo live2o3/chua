@@ -54,6 +54,12 @@ pub async fn upload(
 
     tokio::spawn(reader.run(receiver));
 
+    let parallel = if parallel == 0 {
+        num_cpus::get()
+    } else {
+        parallel
+    };
+
     let mut vec = Vec::with_capacity(parallel);
 
     for _ in 0..parallel {

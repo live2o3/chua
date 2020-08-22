@@ -50,6 +50,9 @@ pub async fn upload(
 
     runtime::spawn(async move { reader.run(receiver).await });
 
+    // Chrome 和 Firefox 的默认并行连接数都是 6
+    let parallel = if parallel == 0 { 6 } else { parallel };
+
     let mut vec = Vec::with_capacity(parallel);
 
     for _ in 0..parallel {
