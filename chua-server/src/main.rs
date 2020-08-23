@@ -10,7 +10,7 @@ use std::convert::Infallible;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-use tokio::fs::{create_dir_all, File, OpenOptions};
+use tokio::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::stream::StreamExt;
 use uuid::Uuid;
@@ -292,6 +292,8 @@ async fn build_file(
 
     target.flush().await?;
     drop(target);
+
+    tokio::spawn(remove_dir_all(chunk_dir.as_ref().to_owned()));
 
     Ok(meta)
 }
