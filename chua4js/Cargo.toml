@@ -8,6 +8,9 @@ edition = "2018"
 
 [dependencies]
 chua = { path = ".."}
+wasm-bindgen = "0.2.67"
+wasm-bindgen-futures = "0.4.17"
+web-sys = { version = "0.3.44", features = ["File"]}
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -158,10 +158,7 @@ async fn main() -> Result<(), Exception> {
                     let chunk_dir = opts.temp_dir.join(id.to_string());
 
                     if let Err(error) = initialize(param, &chunk_dir).await {
-                        return Ok(InitializeResult::Err {
-                            error: InitializeError::Other(error.to_string()),
-                        }
-                        .into());
+                        return Ok(InitializeResult::Err { error }.into());
                     }
 
                     Ok::<InitializeReply, Infallible>(
@@ -190,12 +187,7 @@ async fn main() -> Result<(), Exception> {
                 Ok(meta) => {
                     info!("File {}.{} completed.", file_id, meta.extension);
                 }
-                Err(e) => {
-                    return Ok(CompleteResult::Err {
-                        error: CompleteError::Other(e.to_string()),
-                    }
-                    .into())
-                }
+                Err(error) => return Ok(CompleteResult::Err { error }.into()),
             }
 
             Ok::<CompleteReply, Infallible>(CompleteResult::Ok.into())
@@ -210,7 +202,10 @@ async fn main() -> Result<(), Exception> {
     Ok(())
 }
 
-async fn initialize(param: InitializeParam, chunk_dir: impl AsRef<Path>) -> Result<(), Exception> {
+async fn initialize(
+    param: InitializeParam,
+    chunk_dir: impl AsRef<Path>,
+) -> Result<(), InitializeError> {
     let chunk_dir = chunk_dir.as_ref();
     create_dir_all(&chunk_dir).await?;
 
@@ -229,7 +224,7 @@ async fn initialize(param: InitializeParam, chunk_dir: impl AsRef<Path>) -> Resu
     Ok(())
 }
 
-async fn read_meta(chunk_dir: impl AsRef<Path>) -> Result<InitializeParam, Exception> {
+async fn read_meta(chunk_dir: impl AsRef<Path>) -> Result<InitializeParam, std::io::Error> {
     let meta_file_path = chunk_dir.as_ref().join(META_FILE_NAME);
 
     let mut meta_file = File::open(meta_file_path).await?;
@@ -244,33 +239,52 @@ async fn build_file(
     file_id: Uuid,
     target_dir: impl AsRef<Path>,
     chunk_dir: impl AsRef<Path>,
-) -> Result<InitializeParam, Exception> {
+) -> Result<InitializeParam, CompleteError> {
     let meta = read_meta(chunk_dir.as_ref()).await?;
 
     let quotient = meta.size / meta.chunk_size;
     let remainder = meta.size % meta.chunk_size;
 
-    let chunk_count = if remainder == 0 {
-        quotient
+    let (chunk_count, tail_chunk_size) = if remainder == 0 {
+        (quotient as usize, meta.chunk_size)
     } else {
-        quotient + 1
+        (quotient as usize + 1, remainder)
     };
 
+    let mut ranges = Vec::new();
+    let mut range = 0..chunk_count;
     for i in 0..chunk_count {
         let chunk_path = chunk_dir.as_ref().join(i.to_string());
-        let len = chunk_path.metadata()?.len();
-        let chunk_size = if i == chunk_count - 1 && remainder != 0 {
-            remainder
-        } else {
-            meta.chunk_size
-        };
-        if len != chunk_size {
-            return Err(format!(
-                "The size of chunk {} is invalid.({}, expected: {})",
-                i, len, chunk_size
-            )
-            .into());
+        if chunk_path.exists() && chunk_path.is_file() {
+            if let Ok(file_meta) = chunk_path.metadata() {
+                let len = file_meta.len();
+
+                // 这一片应该是多少
+                let chunk_size = if i == chunk_count - 1 {
+                    tail_chunk_size
+                } else {
+                    meta.chunk_size
+                };
+
+                if len == chunk_size {
+                    if range.start < i {
+                        let r = range.start..i;
+                        ranges.push(r);
+                        range.start = i + 1;
+                    } else {
+                        range.start += 1;
+                    }
+                }
+            }
         }
+    }
+
+    if range.start < chunk_count {
+        ranges.push(range);
+    }
+
+    if !ranges.is_empty() {
+        return Err(CompleteError::Uploading(ranges));
     }
 
     let target_path = {
@@ -298,7 +312,10 @@ async fn build_file(
     Ok(meta)
 }
 
-async fn save_chunk(chunk_path: impl AsRef<Path>, mut data: impl Buf) -> Result<u64, Exception> {
+async fn save_chunk(
+    chunk_path: impl AsRef<Path>,
+    mut data: impl Buf,
+) -> Result<u64, std::io::Error> {
     let mut chunk_file = OpenOptions::new()
         .create(true)
         .write(true)

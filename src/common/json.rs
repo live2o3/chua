@@ -2,6 +2,16 @@ use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use uuid::Uuid;
 
+macro_rules! impl_from_error {
+    ($st:ident) => {
+        impl<E: std::error::Error> From<E> for $st {
+            fn from(e: E) -> Self {
+                Self::Other(e.to_string())
+            }
+        }
+    };
+}
+
 /// 初始化请求的参数
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InitializeParam {
@@ -48,6 +58,8 @@ pub enum InitializeError {
     Other(String),
 }
 
+impl_from_error!(InitializeError);
+
 /// 分片上传响应的结果
 #[derive(Serialize, Deserialize, Debug)]
 pub enum UploadChunkResult {
@@ -64,6 +76,8 @@ pub enum UploadChunkError {
     /// 其它错误
     Other(String),
 }
+
+impl_from_error!(UploadChunkError);
 
 /// 完成响应的结果
 #[derive(Serialize, Deserialize, Debug)]
@@ -84,3 +98,5 @@ pub enum CompleteError {
     /// 其它错误
     Other(String),
 }
+
+impl_from_error!(CompleteError);
