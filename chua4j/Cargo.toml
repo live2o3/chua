@@ -8,6 +8,8 @@ edition = "2018"
 
 [dependencies]
 chua = { path = ".."}
+jni = "0.17.0"
+tokio = { version = "0.2", features = ["full"]}
 
 [lib]
 crate-type = ["cdylib"]
