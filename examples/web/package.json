@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/live2o3/chua#readme",
   "dependencies": {
-    "chua4js": "file:../pkg"
+    "chua4js": "file:../../chua4js/pkg"
   },
   "devDependencies": {
     "webpack": "^4.29.3",
