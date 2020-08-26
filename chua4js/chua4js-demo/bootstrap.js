@@ -11,8 +11,8 @@ import("./index.js").then(m => {
         let parallel = parseInt(document.getElementById("parallel").value);
         console.log("upload => baseUrl: " + baseUrl + ", file: " + file.name + ", chunkSize: " + chunkSize + " Bytes, parallel: " + parallel + ".");
         try {
-            let fildId = await m.upload(baseUrl, file, chunkSize, parallel);
-            console.log("File uploaded.(fileId: " + fildId + ", duration: " + (new Date() - start) + "ms.)");
+            let fileId = await m.upload(baseUrl, file, chunkSize, parallel);
+            console.log("File uploaded.(fileId: " + fileId + ", duration: " + (new Date() - start) + "ms.)");
         } catch (e) {
             console.error("Failed to upload file: " + e);
         }
