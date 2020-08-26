@@ -5,7 +5,6 @@ use jni::objects::{JClass, JObject, JString, JValue};
 use jni::sys::{jlong, jsize, JavaVM};
 use jni::JNIEnv;
 use std::ffi::c_void;
-use tokio::io::Error;
 use tokio::runtime::Runtime;
 
 #[no_mangle]
