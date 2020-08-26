@@ -6,7 +6,9 @@ macro_rules! impl_from_error {
     ($st:ident) => {
         impl<E: std::error::Error> From<E> for $st {
             fn from(e: E) -> Self {
-                Self::Other(e.to_string())
+                Self::Other {
+                    detail: e.to_string(),
+                }
             }
         }
     };
@@ -30,6 +32,7 @@ pub struct InitializeParam {
 
 /// 初始化响应的结果
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "result")]
 pub enum InitializeResult {
     /// 成功
     Ok {
@@ -47,21 +50,23 @@ pub enum InitializeResult {
 
 /// 初始化响应的错误
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub enum InitializeError {
     /// 文件尺寸错误
-    Size(u64),
+    Size { max: u64 },
 
     /// 分片大小不合适，并给出建议的分片大小
-    ChunkSize(u64),
+    ChunkSize { max: u64 },
 
     /// 其它错误
-    Other(String),
+    Other { detail: String },
 }
 
 impl_from_error!(InitializeError);
 
 /// 分片上传响应的结果
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "result")]
 pub enum UploadChunkResult {
     Ok,
     Err { error: UploadChunkError },
@@ -69,18 +74,20 @@ pub enum UploadChunkResult {
 
 /// 分片上传响应的错误
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub enum UploadChunkError {
     /// 这个分片的尺寸不对
-    Size,
+    Size { expected: u64, actual: u64 },
 
     /// 其它错误
-    Other(String),
+    Other { detail: String },
 }
 
 impl_from_error!(UploadChunkError);
 
 /// 完成响应的结果
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "result")]
 pub enum CompleteResult {
     Ok,
     Err { error: CompleteError },
@@ -88,15 +95,16 @@ pub enum CompleteResult {
 
 /// 完成响应的错误
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub enum CompleteError {
-    /// 还在上传中
-    Uploading(Vec<Range<usize>>),
+    /// 没上传完
+    Incomplete { missing: Vec<Range<usize>> },
 
     /// MD5 校验不合法
-    MD5(String),
+    MD5 { expected: String, actual: String },
 
     /// 其它错误
-    Other(String),
+    Other { detail: String },
 }
 
 impl_from_error!(CompleteError);

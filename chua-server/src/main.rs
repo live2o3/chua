@@ -72,46 +72,73 @@ async fn main() -> Result<(), Exception> {
                 |opts: Opts, file_id: Uuid, index: usize, mut form: FormData| async move {
                     debug!("upload_chunk: {}.{}", file_id, index);
 
+                    let chunk_dir = opts.temp_dir.join(file_id.to_string());
+
+                    let meta = match read_meta(&chunk_dir).await {
+                        Ok(meta) => meta,
+                        Err(e) => {
+                            return Ok(UploadChunkResult::Err {
+                                error: UploadChunkError::Other {
+                                    detail: e.to_string(),
+                                },
+                            }
+                            .into())
+                        }
+                    };
+
                     while let Some(result) = form.next().await {
                         match result {
                             Ok(mut part) if part.name() == PART_NAME => {
                                 return if let Some(result) = part.data().await {
                                     match result {
                                         Ok(data) => {
-                                            let chunk_path = opts
-                                                .temp_dir
-                                                .join(file_id.to_string())
-                                                .join(index.to_string());
-
+                                            let chunk_path = chunk_dir.join(index.to_string());
                                             match save_chunk(&chunk_path, data).await {
-                                                Ok(_size) => {
-                                                    // TODO: check size
-
-                                                    Ok::<UploadChunkReply, Infallible>(
-                                                        UploadChunkResult::Ok.into(),
-                                                    )
+                                                Ok(size) => {
+                                                    if size == meta.chunk_size {
+                                                        Ok::<UploadChunkReply, Infallible>(
+                                                            UploadChunkResult::Ok.into(),
+                                                        )
+                                                    } else {
+                                                        Ok(UploadChunkResult::Err {
+                                                            error: UploadChunkError::Size {
+                                                                expected: meta.chunk_size,
+                                                                actual: size,
+                                                            },
+                                                        }
+                                                        .into())
+                                                    }
                                                 }
                                                 Err(e) => Ok(UploadChunkResult::Err {
-                                                    error: UploadChunkError::Other(e.to_string()),
+                                                    error: UploadChunkError::Other {
+                                                        detail: e.to_string(),
+                                                    },
                                                 }
                                                 .into()),
                                             }
                                         }
                                         Err(e) => Ok(UploadChunkResult::Err {
-                                            error: UploadChunkError::Other(e.to_string()),
+                                            error: UploadChunkError::Other {
+                                                detail: e.to_string(),
+                                            },
                                         }
                                         .into()),
                                     }
                                 } else {
                                     Ok(UploadChunkResult::Err {
-                                        error: UploadChunkError::Size,
+                                        error: UploadChunkError::Size {
+                                            expected: meta.chunk_size,
+                                            actual: 0,
+                                        },
                                     }
                                     .into())
                                 };
                             }
                             Err(e) => {
                                 return Ok(UploadChunkResult::Err {
-                                    error: UploadChunkError::Other(e.to_string()),
+                                    error: UploadChunkError::Other {
+                                        detail: e.to_string(),
+                                    },
                                 }
                                 .into())
                             }
@@ -121,7 +148,10 @@ async fn main() -> Result<(), Exception> {
 
                     Ok::<UploadChunkReply, Infallible>(
                         UploadChunkResult::Err {
-                            error: UploadChunkError::Size,
+                            error: UploadChunkError::Size {
+                                expected: meta.chunk_size,
+                                actual: 0,
+                            },
                         }
                         .into(),
                     )
@@ -142,14 +172,18 @@ async fn main() -> Result<(), Exception> {
 
                     if param.size == 0 || param.size > opts.max_file_size {
                         return Ok(InitializeResult::Err {
-                            error: InitializeError::Size(opts.max_file_size),
+                            error: InitializeError::Size {
+                                max: opts.max_file_size,
+                            },
                         }
                         .into());
                     }
 
                     if param.chunk_size == 0 || param.chunk_size > opts.max_chunk_size {
                         return Ok(InitializeResult::Err {
-                            error: InitializeError::ChunkSize(opts.max_chunk_size),
+                            error: InitializeError::ChunkSize {
+                                max: opts.max_chunk_size,
+                            },
                         }
                         .into());
                     }
@@ -284,7 +318,7 @@ async fn build_file(
     }
 
     if !ranges.is_empty() {
-        return Err(CompleteError::Uploading(ranges));
+        return Err(CompleteError::Incomplete { missing: ranges });
     }
 
     let target_path = {
