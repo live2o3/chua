@@ -4,6 +4,7 @@ use chua::upload;
 use jni::objects::{JClass, JObject, JString, JValue};
 use jni::sys::{jlong, jsize, JavaVM};
 use jni::JNIEnv;
+use log::*;
 use std::ffi::c_void;
 use tokio::runtime::Runtime;
 
@@ -12,15 +13,15 @@ pub unsafe extern "system" fn JNI_OnLoad(jvm: JavaVM, _reserved: *mut c_void) {
     #[cfg(target_os = "android")]
     init_android_log();
 
-    log::info!("Chua4j loaded.");
+    info!("Chua4j loaded.");
 
     match tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_all()
         .build()
     {
-        Ok(_) => log::info!("Tokio runtime is created."),
-        Err(e) => log::error!("Failed to create a tokio runtime: {}", e),
+        Ok(_) => info!("Tokio runtime is created."),
+        Err(e) => error!("Failed to create a tokio runtime: {}", e),
     }
 }
 
