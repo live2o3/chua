@@ -39,4 +39,13 @@ public class Result<T> {
         this.value = value;
         this.cause = cause;
     }
+
+    @Override
+    public String toString() {
+        if (this.succeeded) {
+            return String.format("Succeeded: %s", this.value);
+        } else {
+            return String.format("Failed: %s", this.cause);
+        }
+    }
 }
