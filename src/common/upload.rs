@@ -1,5 +1,5 @@
-use crate::common::{Chunk, Exception, FILE_ROUTE, PART_NAME};
-use crate::{CompleteResult, InitializeParam, InitializeResult};
+use crate::common::{ChuaError, Chunk, FILE_ROUTE, PART_NAME};
+use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
 use futures::SinkExt;
 use futures_channel::{mpsc, oneshot};
 use reqwest::{IntoUrl, Url};
@@ -16,24 +16,21 @@ pub(crate) struct Uploader {
 
 impl Uploader {
     #[cfg(target_arch = "wasm32")]
-    pub(crate) async fn new(base_url: impl IntoUrl) -> Result<Self, Exception> {
+    pub(crate) async fn new(base_url: impl IntoUrl) -> Result<Self, ChuaError> {
         Ok(Self {
             client: reqwest::Client::new(),
             base_url: base_url.into_url()?,
         })
     }
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) async fn new(base_url: impl IntoUrl, timeout: Duration) -> Result<Self, Exception> {
+    pub(crate) async fn new(base_url: impl IntoUrl, timeout: Duration) -> ChuaResult<Self> {
         Ok(Self {
             client: reqwest::ClientBuilder::new().timeout(timeout).build()?,
             base_url: base_url.into_url()?,
         })
     }
 
-    pub(crate) async fn initialize(
-        &self,
-        param: InitializeParam,
-    ) -> Result<InitializeResult, Exception> {
+    pub(crate) async fn initialize(&self, param: InitializeParam) -> ChuaResult<InitializeResult> {
         let url = self.base_url.join(&format!("{}", FILE_ROUTE))?;
 
         let result: InitializeResult = self
@@ -48,7 +45,7 @@ impl Uploader {
         Ok(result)
     }
 
-    pub(crate) async fn complete(self, file_id: &Uuid) -> Result<CompleteResult, Exception> {
+    pub(crate) async fn complete(self, file_id: &Uuid) -> ChuaResult<CompleteResult> {
         let url = self.base_url.join(&format!("{}/{}", FILE_ROUTE, file_id))?;
 
         let result: CompleteResult = self.client.post(url).send().await?.json().await?;
@@ -61,7 +58,7 @@ impl Uploader {
         self,
         file_id: Uuid,
         mut sender: mpsc::UnboundedSender<oneshot::Sender<Option<Chunk<Vec<u8>>>>>,
-    ) -> Result<(), Exception> {
+    ) -> Result<(), ChuaError> {
         loop {
             let (os, or) = oneshot::channel();
 
@@ -93,7 +90,7 @@ impl Uploader {
         self,
         file_id: Uuid,
         mut sender: mpsc::UnboundedSender<oneshot::Sender<Option<Chunk<web_sys::Blob>>>>,
-    ) -> Result<(), Exception> {
+    ) -> ChuaResult<()> {
         loop {
             let (os, or) = oneshot::channel();
 
@@ -116,7 +113,7 @@ impl Uploader {
 
     // TODO: 这段代码在 wasm32 下不能工作，考虑为 wasm32 单独实现
     #[cfg(not(target_arch = "wasm32"))]
-    async fn send_chunk(&self, file_id: Uuid, chunk: Chunk<Vec<u8>>) -> Result<String, Exception> {
+    async fn send_chunk(&self, file_id: Uuid, chunk: Chunk<Vec<u8>>) -> ChuaResult<String> {
         use reqwest::multipart::*;
 
         let Chunk { index, data } = chunk;
@@ -136,11 +133,7 @@ impl Uploader {
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn send_chunk(
-        &self,
-        file_id: Uuid,
-        chunk: Chunk<web_sys::Blob>,
-    ) -> Result<String, Exception> {
+    async fn send_chunk(&self, file_id: Uuid, chunk: Chunk<web_sys::Blob>) -> ChuaResult<String> {
         use crate::wasm::runtime::promise;
         use js_sys::Uint8Array;
         use wasm_bindgen::JsValue;

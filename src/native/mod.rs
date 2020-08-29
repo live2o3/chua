@@ -1,7 +1,7 @@
 mod file;
 
-use crate::common::{Exception, Uploader};
-use crate::{CompleteResult, InitializeParam, InitializeResult};
+use crate::common::{ChuaError, Uploader};
+use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
 use reqwest::IntoUrl;
@@ -14,10 +14,12 @@ pub async fn upload(
     path: impl AsRef<Path>,
     chunk_size: u64,
     parallel: usize,
-) -> Result<Uuid, Exception> {
+) -> ChuaResult<Uuid> {
     let path = path.as_ref();
     if !path.is_file() {
-        return Err("The path is not pointing a regular file".into());
+        return Err(ChuaError::Other(
+            "The path is not pointing a regular file".into(),
+        ));
     }
 
     let extension = match path.extension() {

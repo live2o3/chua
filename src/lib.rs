@@ -15,7 +15,7 @@ macro_rules! if_native {
 }
 
 pub use common::json::*;
-pub use common::Exception;
+pub use common::{ChuaError, ChuaResult};
 pub use common::{FILE_ROUTE, PART_NAME};
 
 if_native! {

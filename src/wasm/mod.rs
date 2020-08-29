@@ -1,8 +1,8 @@
 mod file;
 pub(crate) mod runtime;
 
-use crate::common::{Exception, Uploader};
-use crate::{CompleteResult, InitializeParam, InitializeResult};
+use crate::common::Uploader;
+use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
 use reqwest::IntoUrl;
@@ -13,7 +13,7 @@ pub async fn upload(
     file: web_sys::File,
     chunk_size: u64,
     parallel: usize,
-) -> Result<Uuid, Exception> {
+) -> ChuaResult<Uuid> {
     let name: String = file.name();
 
     let extension = match name.rfind('.') {

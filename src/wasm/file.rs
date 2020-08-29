@@ -1,5 +1,6 @@
 use super::runtime::get_slice;
-use crate::common::{Chunk, ChunkIterator, Exception};
+use crate::common::{ChuaError, Chunk, ChunkIterator};
+use crate::ChuaResult;
 use futures::future::join;
 use futures::StreamExt;
 use futures_channel::{mpsc, oneshot};
@@ -19,7 +20,7 @@ impl FileReader {
         (Self { size_iter, file }, size)
     }
 
-    async fn read_chunk(&mut self) -> Option<Result<Chunk<web_sys::Blob>, Exception>> {
+    async fn read_chunk(&mut self) -> Option<ChuaResult<Chunk<web_sys::Blob>>> {
         let next_pos = self.size_iter.next();
 
         match next_pos {
@@ -34,7 +35,7 @@ impl FileReader {
     pub(crate) async fn run(
         mut self,
         mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk<web_sys::Blob>>>>,
-    ) -> Result<(), Exception> {
+    ) -> Result<(), ChuaError> {
         while let (Some(sender), read_chunk) = join(receiver.next(), self.read_chunk()).await {
             match read_chunk {
                 Some(result) => match result {

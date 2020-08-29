@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 
-use chua::{upload, Exception};
+use chua::upload;
 use jni::objects::{JClass, JObject, JString, JThrowable, JValue};
 use jni::sys::{jint, jlong, jsize, JNI_VERSION_1_6};
 use jni::{JNIEnv, JavaVM};
 use lazy_static::lazy_static;
+use std::fmt::Display;
 use std::os::raw::c_void;
 use tokio::runtime::Runtime;
 use uuid::Uuid;
@@ -35,35 +36,35 @@ pub unsafe extern "system" fn Java_com_live2o3_chua_Chua_upload<'a>(
     parallel: jsize,
 ) -> JObject<'a> {
     if base_url.is_null() {
-        return make_java_result(env, Err("Base url must not be null".into()));
+        return make_java_result(env, Err("Base url must not be null"));
     }
 
     let base_url: String = match env.get_string(base_url) {
         Ok(base_url) => base_url,
-        Err(e) => return make_java_result(env.clone(), Err(e.into())),
+        Err(e) => return make_java_result(env.clone(), Err(e)),
     }
     .into();
 
     if path.is_null() {
-        return make_java_result(env, Err("Path must not be null".into()));
+        return make_java_result(env, Err("Path must not be null"));
     }
 
     let path: String = match env.get_string(path) {
         Ok(path) => path,
-        Err(e) => return make_java_result(env.clone(), Err(e.into())),
+        Err(e) => return make_java_result(env.clone(), Err(e)),
     }
     .into();
 
     let chunk_size = if chunk_size > 0 {
         chunk_size as u64
     } else {
-        return make_java_result(env, Err("Chunk size must be greater than 0".into()));
+        return make_java_result(env, Err("Chunk size must be greater than 0"));
     };
 
     let parallel = if parallel >= 0 {
         parallel as usize
     } else {
-        return make_java_result(env, Err("Parallel must not be less than 0".into()));
+        return make_java_result(env, Err("Parallel must not be less than 0"));
     };
 
     let result = RUNTIME
@@ -75,7 +76,7 @@ pub unsafe extern "system" fn Java_com_live2o3_chua_Chua_upload<'a>(
     make_java_result(env, result)
 }
 
-fn make_java_result(env: JNIEnv, result: Result<Uuid, Exception>) -> JObject {
+fn make_java_result<E: Display>(env: JNIEnv, result: Result<Uuid, E>) -> JObject {
     let class = env
         .find_class("com/live2o3/Result")
         .expect("Cannot find class 'Result'");

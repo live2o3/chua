@@ -1,4 +1,4 @@
-use chua::{upload, Exception};
+use chua::{upload, ChuaResult};
 use std::path::PathBuf;
 use structopt::StructOpt;
 use url::Url;
@@ -25,7 +25,7 @@ struct Opts {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Exception> {
+async fn main() -> ChuaResult<()> {
     let Opts {
         base_url,
         file,

@@ -7,7 +7,6 @@ use chua::{
     UploadChunkError, UploadChunkResult, PART_NAME,
 };
 use std::convert::Infallible;
-use std::error::Error;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use tokio::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
@@ -20,7 +19,6 @@ use warp::Filter;
 #[macro_use]
 extern crate log;
 
-type Exception = Box<dyn Error + Sync + Send + 'static>;
 const META_FILE_NAME: &'static str = ".meta";
 
 #[derive(Debug, Clone, StructOpt)]
@@ -48,7 +46,7 @@ struct Opts {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Exception> {
+async fn main() {
     std::env::set_var("RUST_LOG", log::Level::Info.to_string());
     env_logger::init();
 
@@ -232,8 +230,6 @@ async fn main() -> Result<(), Exception> {
     let routes = initialize.or(upload_chunk).or(complete).or(file);
 
     warp::serve(routes).run(([0, 0, 0, 0], opts.port)).await;
-
-    Ok(())
 }
 
 async fn initialize(

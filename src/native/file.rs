@@ -1,4 +1,5 @@
-use crate::common::{Chunk, ChunkIterator, Exception};
+use crate::common::{ChuaError, Chunk, ChunkIterator};
+use crate::ChuaResult;
 use futures::future::join;
 use futures::StreamExt;
 use futures_channel::{mpsc, oneshot};
@@ -13,7 +14,7 @@ pub(super) struct FileReader {
 }
 
 impl FileReader {
-    pub async fn new<P: AsRef<Path>>(path: P, chunk_size: u64) -> Result<(Self, u64), Exception> {
+    pub async fn new<P: AsRef<Path>>(path: P, chunk_size: u64) -> ChuaResult<(Self, u64)> {
         let file = File::open(&path).await?;
 
         let meta = file.metadata().await?;
@@ -25,7 +26,7 @@ impl FileReader {
         Ok((Self { size_iter, file }, size))
     }
 
-    async fn read_chunk(&mut self) -> Option<Result<Chunk<Vec<u8>>, Exception>> {
+    async fn read_chunk(&mut self) -> Option<ChuaResult<Chunk<Vec<u8>>>> {
         let next_pos = self.size_iter.next();
 
         match next_pos {
@@ -44,7 +45,7 @@ impl FileReader {
     pub(crate) async fn run(
         mut self,
         mut receiver: mpsc::UnboundedReceiver<oneshot::Sender<Option<Chunk<Vec<u8>>>>>,
-    ) -> Result<(), Exception> {
+    ) -> Result<(), ChuaError> {
         while let (Some(sender), read_chunk) = join(receiver.next(), self.read_chunk()).await {
             match read_chunk {
                 Some(result) => match result {
