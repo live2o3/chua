@@ -2,11 +2,10 @@
 
 use chua::{upload, Exception};
 use jni::objects::{JClass, JObject, JString, JThrowable, JValue};
-use jni::sys::{jint, jlong, jsize, JavaVM, JNI_VERSION_1_6};
-use jni::JNIEnv;
+use jni::sys::{jint, jlong, jsize, JNI_VERSION_1_6};
+use jni::{JNIEnv, JavaVM};
 use lazy_static::lazy_static;
-use log::*;
-use std::ffi::c_void;
+use std::os::raw::c_void;
 use tokio::runtime::Runtime;
 use uuid::Uuid;
 
@@ -19,11 +18,9 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn JNI_OnLoad(_vm: *const JavaVM, _reserved: *const c_void) -> jint {
+pub unsafe extern "system" fn JNI_OnLoad(_vm: *mut JavaVM, _reserved: *mut c_void) -> jint {
     #[cfg(target_os = "android")]
     init_android_log();
-
-    info!("Chua4j loaded.");
 
     JNI_VERSION_1_6
 }
@@ -31,7 +28,7 @@ pub unsafe extern "system" fn JNI_OnLoad(_vm: *const JavaVM, _reserved: *const c
 #[no_mangle]
 pub unsafe extern "system" fn Java_com_live2o3_chua_Chua_upload<'a>(
     env: JNIEnv<'a>,
-    _: JClass<'a>,
+    _class: JClass<'a>,
     base_url: JString<'a>,
     path: JString<'a>,
     chunk_size: jlong,
@@ -146,6 +143,7 @@ fn make_java_result(env: JNIEnv, result: Result<Uuid, Exception>) -> JObject {
 #[cfg(target_os = "android")]
 fn init_android_log() {
     use android_logger::Config;
+    use log::*;
     android_logger::init_once(
         Config::default()
             .with_min_level(Level::Debug) // limit log level
