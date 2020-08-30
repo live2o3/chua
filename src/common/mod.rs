@@ -1,5 +1,6 @@
 mod chunk;
 mod error;
+mod event;
 mod json;
 mod upload;
 

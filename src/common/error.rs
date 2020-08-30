@@ -15,10 +15,10 @@ pub enum ChuaError {
     Json(#[from] serde_json::Error),
 
     #[error(transparent)]
-    Send(#[from] futures_channel::mpsc::SendError),
+    Send(#[from] futures::channel::mpsc::SendError),
 
     #[error(transparent)]
-    Canceled(#[from] futures_channel::oneshot::Canceled),
+    Canceled(#[from] futures::channel::oneshot::Canceled),
 
     #[cfg(target_arch = "wasm32")]
     #[error(transparent)]

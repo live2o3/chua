@@ -3,8 +3,8 @@ mod reply;
 use crate::reply::{CompleteReply, InitializeReply, UploadChunkReply};
 use bytes::Buf;
 use chua::{
-    CompleteError, CompleteResult, InitializeError, InitializeParam, InitializeResult,
-    UploadChunkError, UploadChunkResult, PART_NAME,
+    CompleteError, CompleteResult, InitializeError, InitializeResult, UploadChunkError,
+    UploadChunkResult, UploadParam, PART_NAME,
 };
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
@@ -19,7 +19,7 @@ use warp::Filter;
 #[macro_use]
 extern crate log;
 
-const META_FILE_NAME: &'static str = ".meta";
+const META_FILE_NAME: &'static str = ".param";
 
 #[derive(Debug, Clone, StructOpt)]
 #[structopt(name = "chua-server")]
@@ -72,7 +72,7 @@ async fn main() {
 
                     let chunk_dir = opts.temp_dir.join(file_id.to_string());
 
-                    let meta = match read_meta(&chunk_dir).await {
+                    let meta = match read_param(&chunk_dir).await {
                         Ok(meta) => meta,
                         Err(e) => {
                             return Ok(UploadChunkResult::Err {
@@ -164,7 +164,7 @@ async fn main() {
             .and(with_opts.clone())
             .and(warp::path("file"))
             .and(warp::body::json())
-            .and_then(move |opts: Opts, param: InitializeParam| {
+            .and_then(move |opts: Opts, param: UploadParam| {
                 async move {
                     // TODO: 根据 MD5 和 size 检查文件是否已上传
 
@@ -233,7 +233,7 @@ async fn main() {
 }
 
 async fn initialize(
-    param: InitializeParam,
+    param: UploadParam,
     chunk_dir: impl AsRef<Path>,
 ) -> Result<(), InitializeError> {
     let chunk_dir = chunk_dir.as_ref();
@@ -254,7 +254,7 @@ async fn initialize(
     Ok(())
 }
 
-async fn read_meta(chunk_dir: impl AsRef<Path>) -> Result<InitializeParam, std::io::Error> {
+async fn read_param(chunk_dir: impl AsRef<Path>) -> Result<UploadParam, std::io::Error> {
     let meta_file_path = chunk_dir.as_ref().join(META_FILE_NAME);
 
     let mut meta_file = File::open(meta_file_path).await?;
@@ -269,14 +269,14 @@ async fn build_file(
     file_id: Uuid,
     target_dir: impl AsRef<Path>,
     chunk_dir: impl AsRef<Path>,
-) -> Result<InitializeParam, CompleteError> {
-    let meta = read_meta(chunk_dir.as_ref()).await?;
+) -> Result<UploadParam, CompleteError> {
+    let param = read_param(chunk_dir.as_ref()).await?;
 
-    let quotient = meta.size / meta.chunk_size;
-    let remainder = meta.size % meta.chunk_size;
+    let quotient = param.size / param.chunk_size;
+    let remainder = param.size % param.chunk_size;
 
     let (chunk_count, tail_chunk_size) = if remainder == 0 {
-        (quotient as usize, meta.chunk_size)
+        (quotient as usize, param.chunk_size)
     } else {
         (quotient as usize + 1, remainder)
     };
@@ -293,7 +293,7 @@ async fn build_file(
                 let chunk_size = if i == chunk_count - 1 {
                     tail_chunk_size
                 } else {
-                    meta.chunk_size
+                    param.chunk_size
                 };
 
                 if len == chunk_size {
@@ -314,12 +314,12 @@ async fn build_file(
     }
 
     if !ranges.is_empty() {
-        return Err(CompleteError::Incomplete { missing: ranges });
+        return Err(CompleteError::Incomplete { param, ranges });
     }
 
     let target_path = {
         let mut p = target_dir.as_ref().join(file_id.to_string());
-        p.set_extension(&meta.extension);
+        p.set_extension(&param.extension);
         p
     };
     let mut target = OpenOptions::new()
@@ -339,7 +339,7 @@ async fn build_file(
 
     tokio::spawn(remove_dir_all(chunk_dir.as_ref().to_owned()));
 
-    Ok(meta)
+    Ok(param)
 }
 
 async fn save_chunk(

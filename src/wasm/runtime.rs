@@ -1,6 +1,6 @@
+use futures::channel::oneshot;
+use futures::channel::oneshot::{Canceled, Receiver};
 use futures::task::{Context, Poll};
-use futures_channel::oneshot;
-use futures_channel::oneshot::{Canceled, Receiver};
 use std::future::Future;
 use std::pin::Pin;
 use wasm_bindgen::{throw_str, JsCast, JsValue};

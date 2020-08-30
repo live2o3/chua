@@ -1,9 +1,9 @@
 use super::runtime::get_slice;
 use crate::common::{ChuaError, Chunk, ChunkIterator};
 use crate::ChuaResult;
+use futures::channel::{mpsc, oneshot};
 use futures::future::join;
 use futures::StreamExt;
-use futures_channel::{mpsc, oneshot};
 
 #[derive(Debug)]
 pub(super) struct FileReader {

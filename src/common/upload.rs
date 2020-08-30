@@ -1,7 +1,7 @@
 use crate::common::{ChuaError, Chunk, FILE_ROUTE, PART_NAME};
-use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
+use crate::{ChuaResult, CompleteResult, InitializeResult, UploadParam};
+use futures::channel::{mpsc, oneshot};
 use futures::SinkExt;
-use futures_channel::{mpsc, oneshot};
 use reqwest::{IntoUrl, Url};
 use uuid::Uuid;
 
@@ -30,7 +30,7 @@ impl Uploader {
         })
     }
 
-    pub(crate) async fn initialize(&self, param: InitializeParam) -> ChuaResult<InitializeResult> {
+    pub(crate) async fn initialize(&self, param: UploadParam) -> ChuaResult<InitializeResult> {
         let url = self.base_url.join(&format!("{}", FILE_ROUTE))?;
 
         let result: InitializeResult = self

@@ -1,8 +1,8 @@
 use crate::common::{ChuaError, Chunk, ChunkIterator};
 use crate::ChuaResult;
+use futures::channel::{mpsc, oneshot};
 use futures::future::join;
 use futures::StreamExt;
-use futures_channel::{mpsc, oneshot};
 use std::path::Path;
 use tokio::fs::File;
 use tokio::prelude::*;

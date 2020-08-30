@@ -16,7 +16,7 @@ macro_rules! impl_from_error {
 
 /// 初始化请求的参数
 #[derive(Serialize, Deserialize, Debug)]
-pub struct InitializeParam {
+pub struct UploadParam {
     /// 文件大小
     pub size: u64,
 
@@ -98,7 +98,10 @@ pub enum CompleteResult {
 #[serde(tag = "type")]
 pub enum CompleteError {
     /// 没上传完
-    Incomplete { missing: Vec<Range<usize>> },
+    Incomplete {
+        param: UploadParam,
+        ranges: Vec<Range<usize>>,
+    },
 
     /// MD5 校验不合法
     MD5 { expected: String, actual: String },

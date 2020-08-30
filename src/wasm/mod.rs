@@ -2,9 +2,9 @@ mod file;
 pub(crate) mod runtime;
 
 use crate::common::Uploader;
-use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
+use crate::{ChuaResult, CompleteResult, InitializeResult, UploadParam};
 use file::FileReader;
-use futures_channel::mpsc;
+use futures::channel::mpsc;
 use reqwest::IntoUrl;
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ pub async fn upload(
 
     let uploader = Uploader::new(base_url).await?;
 
-    let init_param = InitializeParam {
+    let init_param = UploadParam {
         size,
         chunk_size,
         extension,
