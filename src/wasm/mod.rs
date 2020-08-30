@@ -17,9 +17,10 @@ pub async fn upload(
     let name: String = file.name();
 
     let extension = match name.rfind('.') {
-        None => "".to_string(),
-        Some(index) => name[index + 1..].to_string(),
-    };
+        None => "",
+        Some(index) => &name[index + 1..],
+    }
+    .into();
 
     let (reader, size) = FileReader::new(file.into(), chunk_size);
 

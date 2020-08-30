@@ -1,6 +1,6 @@
 mod file;
 
-use crate::common::{ChuaError, Uploader};
+use crate::common::Uploader;
 use crate::{ChuaResult, CompleteResult, InitializeParam, InitializeResult};
 use file::FileReader;
 use futures_channel::mpsc;
@@ -17,15 +17,15 @@ pub async fn upload(
 ) -> ChuaResult<Uuid> {
     let path = path.as_ref();
     if !path.is_file() {
-        return Err(ChuaError::Other(
-            "The path is not pointing a regular file".into(),
-        ));
+        return Err("The path is not pointing a regular file".into());
     }
 
-    let extension = match path.extension() {
-        None => String::new(),
-        Some(ext) => ext.to_str().unwrap_or("").to_string(),
-    };
+    let extension = path
+        .extension()
+        .map(|e| e.to_str())
+        .flatten()
+        .unwrap_or("")
+        .into();
 
     let (reader, size) = FileReader::new(path, chunk_size).await?;
 

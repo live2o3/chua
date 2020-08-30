@@ -1,9 +1,10 @@
 mod chunk;
 mod error;
-pub(crate) mod json;
+mod json;
 mod upload;
 
 pub(crate) use chunk::{Chunk, ChunkIterator};
+pub use json::*;
 pub(crate) use upload::Uploader;
 
 pub const FILE_ROUTE: &'static str = "file";
