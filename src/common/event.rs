@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
+use tokio::stream::StreamExt;
 use url::Url;
 use uuid::Uuid;
 
@@ -30,28 +31,33 @@ pub enum Event {
     },
 }
 
-pub fn event_channel() -> (EventSender, EventReceiver) {
-    let (sender, receiver) = channel(0);
-    (EventSender(sender), EventReceiver(receiver))
-}
+pub struct Emitter(Sender<Event>);
 
-pub struct EventSender(Sender<Event>);
-
-impl EventSender {
-    pub async fn send(&mut self, event: Event) -> ChuaResult<()> {
+impl Emitter {
+    pub async fn emit(&mut self, event: Event) -> ChuaResult<()> {
         Ok(self.0.send(event).await?)
     }
+}
+
+pub struct Progress(Receiver<Event>);
+
+impl Stream for Progress {
+    type Item = Event;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.get_mut().0).poll_next(cx)
+    }
+}
+
+fn progress_channel() -> (Emitter, Progress) {
+    let (sender, receiver) = channel(0);
+    (Emitter(sender), Progress(receiver))
 }
 
 #[derive(Clone)]
 pub struct ChuaClient {
     client: reqwest::Client,
     base_url: Url,
-}
-
-pub enum Resume {
-    Uploading(Chua),
-    Completed(Uuid),
 }
 
 impl ChuaClient {
@@ -75,43 +81,44 @@ impl ChuaClient {
         file_id: Uuid,
         path: impl AsRef<PathBuf>,
         parallel: usize,
-    ) -> ChuaResult<Resume> {
+    ) -> ChuaResult<Progress> {
+        // complete url
         let url = self.base_url.join(&format!("{}/{}", FILE_ROUTE, file_id))?;
-        let result: CompleteResult = self.client.post(url).send().await?.json().await?;
+        let file_size = path.as_ref().metadata()?.len();
+        let client = self.client.clone();
 
-        match result {
-            CompleteResult::Ok => Ok(Resume::Completed(file_id)),
-            CompleteResult::Err { error } => match error {
-                CompleteError::Incomplete {
-                    param:
-                        UploadParam {
-                            size, chunk_size, ..
-                        },
-                    ranges,
-                } => {
-                    let file_size = path.as_ref().metadata()?.len();
-                    if size != file_size {
-                        return Err(format!(
-                            "file size error: (expected: {}, actual: {})",
-                            size, file_size
-                        )
-                        .into());
+        let (mut emitter, progress) = progress_channel();
+
+        tokio::spawn(async move {
+            let result: CompleteResult = client.post(url).send().await?.json().await?;
+
+            match result {
+                CompleteResult::Ok => {}
+                CompleteResult::Err { error } => match error {
+                    CompleteError::Incomplete { param, ranges } => {
+                        if param.size != file_size {
+                            return Err(format!(
+                                "file size error: (expected: {}, actual: {})",
+                                param.size, file_size
+                            )
+                            .into());
+                        }
+
+                        // TODO: do upload
                     }
+                    CompleteError::MD5 { expected, actual } => {
+                        //Err(format!("md5 error(expected: {}, actual: {})", expected, actual).into())
+                    }
+                    CompleteError::Other { detail } => {} //Err(detail.into()),
+                },
+            }
 
-                    Ok(Resume::Uploading(Chua {
-                        client: self.clone(),
-                        path: path.as_ref().to_path_buf(),
-                        chunk_size,
-                        parallel,
-                        ranges: Some(ranges),
-                    }))
-                }
-                CompleteError::MD5 { expected, actual } => {
-                    Err(format!("md5 error(expected: {}, actual: {})", expected, actual).into())
-                }
-                CompleteError::Other { detail } => Err(detail.into()),
-            },
-        }
+            let _ = emitter;
+
+            ChuaResult::Ok(())
+        });
+
+        Ok(progress)
     }
 
     pub fn new_upload(
@@ -119,41 +126,18 @@ impl ChuaClient {
         path: impl AsRef<PathBuf>,
         chunk_size: u64,
         parallel: usize,
-    ) -> ChuaResult<Chua> {
-        Ok(Chua {
-            client: self.clone(),
-            path: path.as_ref().to_path_buf(),
-            chunk_size,
-            parallel,
-            ranges: None,
-        })
+    ) -> ChuaResult<Progress> {
+        let (emitter, progress) = progress_channel();
+
+        tokio::spawn(async move {
+            // TODO: do upload
+            let _ = emitter;
+        });
+
+        Ok(progress)
     }
 
     pub fn get_base_url(&self) -> &Url {
         &self.base_url
-    }
-}
-
-pub struct Chua {
-    client: ChuaClient,
-    path: PathBuf,
-    chunk_size: u64,
-    parallel: usize,
-    ranges: Option<Vec<Range<usize>>>,
-}
-
-impl Chua {
-    pub async fn run(self) -> ChuaResult<()> {
-        Ok(())
-    }
-}
-
-pub struct EventReceiver(Receiver<Event>);
-
-impl Stream for EventReceiver {
-    type Item = Event;
-
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.get_mut().0).poll_next(cx)
     }
 }
